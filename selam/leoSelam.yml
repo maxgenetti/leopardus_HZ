@@ -1,0 +1,11 @@
+name: leoSelam
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.10
+  - scipy=1.14.1
+  - pandas=2.2.3
+  - numpy=2.1.2
+  - pyarrow=17.0.0

@@ -1,0 +1,18 @@
+before starting run:
+
+# create enviroment
+conda env create -f leoSelam.yml
+conda activate leoSelam
+
+# make sure directories are empty
+bash clean.sh
+
+# make scripts to run tests. Parameters are saved in log file.
+python3 make_tests.py >test.log
+
+# Selam
+Install selam from github if not already installed
+Update selam_path in leoSELAM.py
+
+### Test scripts
+test_sh contains 6 bash scripts
