@@ -193,7 +193,7 @@ def process_model_file(filepath, viterbi, exit_state, selam_process, model) :
 
 def summarize_results(results_df, model) :
 
-    results_df['GEN2'] = results_df['GEN']-results_df['YEAR']
+    results_df['GEN2'] = results_df['GEN']+results_df['YEAR']
     results_df.to_parquet(f'./results/model.{model}.parquet')
 
     summary_df = results_df.groupby('GEN2').agg(
