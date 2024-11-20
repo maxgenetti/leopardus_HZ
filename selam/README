@@ -8,7 +8,8 @@ conda activate leoSelam
 bash clean.sh
 
 # make scripts to run tests. Parameters are saved in log file.
-python3 make_tests.py >test.log
+mkdir sh
+python3 make_test.py >test.log
 
 # Selam
 Install selam from github if not already installed
