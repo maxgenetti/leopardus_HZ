@@ -73,7 +73,7 @@ def create_output(fifo_path, model, min_popSize):
     popFile = pd.read_csv("./inputs/out.tsv", sep ="\t", header = None)
     popFile[2] = popFile[1].map(min_popSize)
     popFile[3] = popFile[1].map(min_popSize)
-    fifo_path = f"./outputs/output_fifo_{model}.txt"
+    fifo_path = f"./output_fifos/output_fifo_{model}.txt"
     popFile[4] = fifo_path
     popFile.to_csv(f"./format_files/output{model}.txt", sep="\t",index=False, header=None)
     return(popFile)
@@ -213,9 +213,7 @@ def summarize_results(results_df, model) :
         max_ks_distance2=('KST2', 'max'),
         count_subpopulations=('GEN2', 'count')  # Count how many subpopulations are used
     )
-    summary_df['filtered'] = 'False'
-    for index, row in summary_df.iterrows():
-        print('\t'.join([str(index)]+list(map(str, row.values))), file = sys.stdout)
+    summary_df.to_csv(sys.stdout, sep='\t', index_label='GEN2')
 
 def calculate_overlap(mother_tracts, father_tract):
     father_state, f_start, f_stop = father_tract
@@ -251,15 +249,15 @@ def main():
     ####set up directory
     if not os.path.exists(f"./results/") :
         os.makedirs(f"./results/")
-    if not os.path.exists(f"./outputs/") :
-        os.makedirs(f"./outputs/")
+    if not os.path.exists(f"./output_fifos/") :
+        os.makedirs(f"./output_fifos/")
     if not os.path.exists(f"./format_files/") :
         os.makedirs(f"./format_files/")
 
     #####make output fifo
     min_popSize = create_demo(demo, ne0, ne1, m, model)
     chromSizes = read_chroms()
-    fifo_path = f"./outputs/output_fifo_{model}.txt"
+    fifo_path = f"./output_fifos/output_fifo_{model}.txt"
     create_fifo(fifo_path)
     popFile = create_output(fifo_path, model, min_popSize)
     viterbi, exit_state = create_viterbi(popFile)
