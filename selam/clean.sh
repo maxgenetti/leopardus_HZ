@@ -1,3 +1,7 @@
-rm ./outputs/*
-rm ./selam_runtime.txt
-rm ./format_files/*
+mkdir -p sh
+mkdir -p outputs
+mkdir -p format_files
+mkdir -p results
+rm -f ./outputs/*
+rm -f ./format_files/*
+rm -f ./selam_runtime.txt
