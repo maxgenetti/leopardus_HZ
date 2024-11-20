@@ -12,7 +12,7 @@ for i in list(range(0,5000)) :
     m = str(round(np.random.choice(m_r),4))
     print(f"{j}-{j+5}\t{ne0}\t{ne1}\t{m}")
     for d in ['wedge','wedgeI','modern','wedgeS','wedgeIS','modernS']:
-        out = open(f"./sh/{j}.sh", "w")
+        out = open(f"./bash_jobs/{j}.sh", "w")
         out.write(f"python leoSELAM.py --ne0 {ne0} --ne1 {ne1} --mig {m} --demo {d} --model {j} 1>./results/model.{j}.tsv 2>./results/model.{j}.err\n")
         out.close()
         j+=1
