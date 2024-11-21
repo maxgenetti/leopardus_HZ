@@ -109,13 +109,14 @@ def k_s_test(ancestry_data, gen, pop, viterbi,summary_df) :
                     ks_stat2, p_value2 = ks_2samp(sim, lst2)
 
                     summary_df.loc[len(summary_df)] = [int(gen),pop,int(year),indv,tract,ancestry_proportion,ks_stat,p_value,ks_stat2,p_value2]
-                    #print(f"{gen}\t{pop}\t{year}\t{indv}\t{tract}\t{ancestry_proportion}\t{ks_stat}\t{p_value}")
 
-                    if (pop == '85' and ancestry_proportion < 0.75) or (pop == '639' and ancestry_proportion > 0.25) or (pop == '446' and (ancestry_proportion==0 or ancestry_proportion==1) and int(gen)>50):
-                        return(pop)
         except :
             print(f"FAILED TO TEST\t-\tGEN:{gen}\tPOP:{pop}\tANC:{tract}\t-\tSIM_Len:{len(sim)}", file = sys.stderr)
             return(pop)
+
+    #if there is no admixture at 50 generations, then stop because the results should not change
+    if int(gen)==55 and len(summary_df[(summary_df['GEN']==50)&(summary_df['SUM']>0)&(summary_df['SUM']<1)]) == 0 :
+        return(gen)
 
 
 def process_model_file(filepath, viterbi, exit_state, selam_process, model) :
