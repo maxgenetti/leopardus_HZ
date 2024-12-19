@@ -2,7 +2,7 @@ import numpy as np
 import random
 ne0_r = np.arange(0.005,0.1000001,0.0001)
 ne1_r = np.arange(0.005,0.2500001,0.0001)
-m_r =   np.arange(0.005,0.1111001,0.0001)
+m_r =   np.arange(0.005,0.1000001,0.0001)
 
 j = 1
 print("Models\tne1\tne2\tmig")

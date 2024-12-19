@@ -13,7 +13,8 @@ import random
 def parseARGS () :
     parser = argparse.ArgumentParser()
     parser.add_argument('--demo', type=str, default="modern", action='store',help='demographic map')
-    parser.add_argument('--model', type=int, default=-1, action='store',help='model #')
+    parser.add_argument('--output', type=str, default="out.tsv", action='store',help='output format file name in ./inputs/, default=out.tsv')
+    parser.add_argument('--model', type=int, default=-1, action='store',help='model number')
     parser.add_argument('--ne0', type=float, default = 0.1, action='store', help='pop0 density km^-1')
     parser.add_argument('--ne1',type=float, default = 0.1, action='store', help='pop1 density km^-1')
     parser.add_argument('--mig', type=float, default = 0.1, action='store', help='dispersal into neighboring population')
@@ -29,21 +30,22 @@ def read_chroms(chromFile = "./inputs/chroms.tsv"):
     chromSizes = np.array(list(chromDict.values()))/50000000 #conver to morgans 2cM/Mb
     return np.round(chromSizes, 3)
 
+
 def create_demo(demo, ne0, ne1, m, model) :
     df = pd.read_csv(f"./inputs/{demo}.txt",sep = "\t")
     area = df.loc[df['definition'] == 'size', ['1']].min().iloc[0]
     df['ne'] = df['species'].map({"geo":ne1,"gut":ne0,"hyb":ne0})
-    df.loc[(df['definition'] == 'migration'), ['1']] = (df['1'] * m).round(3)
-    df.loc[(df['definition'] == 'origin'), ['1']] = (df['1'] * m).round(3) ### added for edges
-    df.loc[(df['definition'] == 'size') & (df['species'] == 'geo'), ['0']] = (df['0'] * ne1 * df['suitabilty']).round(0)
-    df.loc[(df['definition'] == 'size') & (df['species'] == 'geo'), ['1']] = (df['1'] * ne1 * df['suitabilty']).round(0)
-    df.loc[(df['definition'] == 'size') & (df['species'] == 'gut'), ['0']] = (df['0'] * ne0 * df['suitabilty']).round(0)
-    df.loc[(df['definition'] == 'size') & (df['species'] == 'gut'), ['1']] = (df['1'] * ne0 * df['suitabilty']).round(0)
-    df.loc[(df['definition'] == 'size') & (df['species'] == 'hyb'), ['0']] = (df['0'] * ne0 * df['suitabilty']).round(0)
-    df.loc[(df['definition'] == 'size') & (df['species'] == 'hyb'), ['1']] = (df['1'] * ne0 * df['suitabilty']).round(0)
+    df.loc[(df['definition'] == 'migration'), ['1']] = (df['1'] * m)
+    df.loc[(df['definition'] == 'origin'), ['1']] = (df['1'] * m).round(5) ### added for edges
+    df.loc[(df['definition'] == 'size') & (df['species'] == 'geo'), ['0']] = (df['0'] * ne1 * df['suitability']).round(0)
+    df.loc[(df['definition'] == 'size') & (df['species'] == 'geo'), ['1']] = (df['1'] * ne1 * df['suitability']).round(0)
+    df.loc[(df['definition'] == 'size') & (df['species'] == 'gut'), ['0']] = (df['0'] * ne0 * df['suitability']).round(0)
+    df.loc[(df['definition'] == 'size') & (df['species'] == 'gut'), ['1']] = (df['1'] * ne0 * df['suitability']).round(0)
+    df.loc[(df['definition'] == 'size') & (df['species'] == 'hyb'), ['0']] = (df['0'] * ne0 * df['suitability']).round(0)
+    df.loc[(df['definition'] == 'size') & (df['species'] == 'hyb'), ['1']] = (df['1'] * ne0 * df['suitability']).round(0)
     filter_df = df[df['definition'] == 'migration'].copy()
     filter_df['area'] = area
-    filter_df['filter'] = filter_df['suitabilty'] * filter_df['1'] * filter_df['ne'] * area < 1
+    filter_df['filter'] = filter_df['suitability'] * filter_df['1'] * filter_df['ne'] * area < 1
 
     df = df.drop(df.loc[filter_df[filter_df['filter']==True].index].index)
     min_popSize = {}
@@ -58,7 +60,15 @@ def create_demo(demo, ne0, ne1, m, model) :
         elif row['definition'] == 'origin':
             demo_out.write(f"{row['pop0']}\t{row['pop1']}\t{row['sex']}\t{row['0']:.0f}\t{row['1']:.3f}\n")
         elif row['definition'] == 'migration':
-            demo_out.write(f"{row['pop0']}\t{row['pop1']}\t{row['sex']}\t0\t{row['1']:.3f}\n")
+            recipient = df[(df['pop0'].astype(str)==str(row['pop0']))&(df['pop1'].astype(str)==str(row['pop0']))]['0'].values[0]
+            donor =     df[(df['pop0'].astype(str)==str(row['pop1']))&(df['pop1'].astype(str)==str(row['pop1']))]['0'].values[0]
+            if recipient > donor :
+                mig = row['1'] * (donor/recipient)
+            else :
+                mig = row['1']
+
+            demo_out.write(f"{row['pop0']}\t{row['pop1']}\t{row['sex']}\t0\t{mig:.5f}\n")
+
     demo_out.close()
     return(min_popSize)
 
@@ -69,11 +79,10 @@ def create_fifo(fifo_path):
          print(f"FAILED TO MAKE {fifo_path}", file = sys.stderr)
          quit()
 
-def create_output(fifo_path, model, min_popSize):
-    popFile = pd.read_csv("./inputs/out.tsv", sep ="\t", header = None)
+def create_output(fifo_path, model, min_popSize, output):
+    popFile = pd.read_csv(f"./inputs/{output}", sep ="\t", header = None)
     popFile[2] = popFile[1].map(min_popSize)
     popFile[3] = popFile[1].map(min_popSize)
-    fifo_path = f"./output_fifos/output_fifo_{model}.txt"
     popFile[4] = fifo_path
     popFile.to_csv(f"./format_files/output{model}.txt", sep="\t",index=False, header=None)
     return(popFile)
@@ -105,19 +114,23 @@ def k_s_test(ancestry_data, gen, pop, viterbi,summary_df) :
 
                     ks_stat, p_value = ks_2samp(sim, lst)
 
-                    lst2 = random.choice(random.choice(list(random.choice(list(viterbi.values())).values()))[tract]) #randomly fit data to sim
-                    ks_stat2, p_value2 = ks_2samp(sim, lst2)
+                    #lst2 = random.choice(random.choice(list(random.choice(list(viterbi.values())).values()))[tract]) #randomly fit data to sim
+                    #ks_stat2, p_value2 = ks_2samp(sim, lst2)
+                    ks_stat2 = len(lst)
+                    p_value2 = len(sim)
 
                     summary_df.loc[len(summary_df)] = [int(gen),pop,int(year),indv,tract,ancestry_proportion,ks_stat,p_value,ks_stat2,p_value2]
 
         except :
-            print(f"FAILED TO TEST\t-\tGEN:{gen}\tPOP:{pop}\tANC:{tract}\t-\tSIM_Len:{len(sim)}", file = sys.stderr)
-            return(pop)
+            #print(f"FAILED TO TEST\t-\tGEN:{gen}\tPOP:{pop}\tANC:{tract}\t-\tSIM_Len:{len(sim)}", file = sys.stderr)
+            #return(pop)
+            summary_df.loc[len(summary_df)] = [int(gen),pop,0,0,'0,2',ancestry_proportion,-1,-1,-1,-1]
+            summary_df.loc[len(summary_df)] = [int(gen),pop,0,0,'1,1',ancestry_proportion,-1,-1,-1,-1]
+            summary_df.loc[len(summary_df)] = [int(gen),pop,0,0,'2,0',ancestry_proportion,-1,-1,-1,-1]
 
     #if there is no admixture at 50 generations, then stop because the results should not change
     if int(gen)==55 and len(summary_df[(summary_df['GEN']==50)&(summary_df['SUM']>0)&(summary_df['SUM']<1)]) == 0 :
         return(gen)
-
 
 def process_model_file(filepath, viterbi, exit_state, selam_process, model) :
     # Initialize data structures
@@ -151,7 +164,7 @@ def process_model_file(filepath, viterbi, exit_state, selam_process, model) :
             elif len(parts) != 9 : #
                 if parts[6] == '1' : #gap after paternal chromosome, reset maternal
                     maternal = []
-                continue #skip trnasition between parentals.
+                continue #skip transition between parentals.
 
             generation, pop, sex, individual, chromosome, parent, ancestry, start, stop = parts
             if parent == "0" :
@@ -216,6 +229,7 @@ def summarize_results(results_df, model) :
     )
     summary_df.to_csv(sys.stdout, sep='\t', index_label='GEN2')
 
+
 def calculate_overlap(mother_tracts, father_tract):
     father_state, f_start, f_stop = father_tract
     overlap_lengths = {
@@ -245,6 +259,7 @@ def main():
     m = args.mig
     model = args.model
     demo = args.demo
+    output = args.output
     print(f"{model}\t{ne0}\t{ne1}\t{m}",file = sys.stderr) #store model parameters
 
     ####set up directory
@@ -260,7 +275,7 @@ def main():
     chromSizes = read_chroms()
     fifo_path = f"./output_fifos/output_fifo_{model}.txt"
     create_fifo(fifo_path)
-    popFile = create_output(fifo_path, model, min_popSize)
+    popFile = create_output(fifo_path, model, min_popSize, output)
     viterbi, exit_state = create_viterbi(popFile)
 
     ##########run command
