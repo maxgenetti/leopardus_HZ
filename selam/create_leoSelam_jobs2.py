@@ -10,7 +10,7 @@ for i in list(range(0,5000)) :
     ne0 = str(round(np.random.choice(ne0_r),4))
     ne1 = str(round(np.random.choice(ne1_r),4))
     m = str(round(np.random.choice(m_r),4))
-    print(f"{j}-{j+5}\t{ne0}\t{ne1}\t{m}")
+    print(f"{j}-{j+2}\t{ne0}\t{ne1}\t{m}")
     for d in ['wedgeS','wedgeIS','modernS']:
         out = open(f"./bash_jobs/{j}.sh", "w")
         out.write(f"python leoSELAM.py --ne0 {ne0} --ne1 {ne1} --mig {m} --demo {d} --model {j} 1>./results/model.{j}.tsv 2>./results/model.{j}.err\n")
