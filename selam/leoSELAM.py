@@ -18,6 +18,8 @@ def parseARGS () :
     parser.add_argument('--ne0', type=float, default = 0.1, action='store', help='pop0 density km^-1')
     parser.add_argument('--ne1',type=float, default = 0.1, action='store', help='pop1 density km^-1')
     parser.add_argument('--mig', type=float, default = 0.1, action='store', help='dispersal into neighboring population')
+    parser.add_argument('--seed', type=int, default=np.random.randint(1000, 2**31, dtype=np.int64), action='store',help='seed for SELAM')
+    parser.add_argument('--garbage', type=int, default=5, action='store',help='garbage for SELAM, recommend 1-20 to manage memory usage')
     return parser.parse_args()
 
 def read_chroms(chromFile = "./inputs/chroms.tsv"):
@@ -260,6 +262,8 @@ def main():
     model = args.model
     demo = args.demo
     output = args.output
+    seed = args.seed
+    garbage = args.garbage
     print(f"{model}\t{ne0}\t{ne1}\t{m}",file = sys.stderr) #store model parameters
 
     ####set up directory
@@ -280,7 +284,7 @@ def main():
 
     ##########run command
     pChrom = ' '.join([str(x) for x in chromSizes])
-    command = f"{selam_path} -d ./format_files/demography{model}.txt -o ./format_files/output{model}.txt -c {len(chromSizes)+1} {pChrom} 0 >>selam_runtime.txt"
+    command = f"{selam_path} --seed {seed} --garbage {garbage} -d ./format_files/demography{model}.txt -o ./format_files/output{model}.txt -c {len(chromSizes)+1} {pChrom} 0 >>selam_runtime.txt"
     print(f"Starting : {command}", file = sys.stderr)
 
     selam_process = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
