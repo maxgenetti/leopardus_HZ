@@ -1,0 +1,32 @@
+##### Workflow for cleanning and mapping raw data
+##### The reference must be properly indexed for BWA
+##### For many samples, the config.yaml can be created with "python scripts/creatingYamlRawFastq.py samples_list.txt path/to/fastq/ > config.yaml"
+##### Trindade F., jul-2023
+
+##### Input functions #####
+
+configfile: "config/config.yaml"
+
+STAGES=['markdup','markdup.filtered','markdup.filtered.reg'] 
+
+
+##### Target rules #####
+rule all:
+	input:
+		expand("results/mapped_reads/flagstat/{sample}.{stage}.flagstat.txt", sample=config["samples"], stage=STAGES),
+		expand("results/deeptools/plotCoverage_{stage}.txt", stage=STAGES),
+		expand("results/qualimap/{sample}.{stage}/{sample}.{stage}.txt", sample=config["samples"], stage=STAGES)
+
+
+if config["clip"] == True:
+	include: "rules/trimming_reads.smk"
+	include: "rules/mapping_reads.smk"
+else:
+	include: "rules/trimming_reads_colap.smk"
+	include: "rules/mapping_reads_colap.smk"
+	include: "rules/sambamba_markdup.smk"
+
+include: "rules/samtools_filtering.smk"
+include: "rules/samtools_filtering_reg.smk"
+include: "rules/bamqc.smk"
+
